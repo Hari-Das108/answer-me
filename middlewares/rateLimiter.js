@@ -1,4 +1,4 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import AppError from "../utils/appError.js";
 
 export const uploadLimiter = rateLimit({
@@ -6,7 +6,7 @@ export const uploadLimiter = rateLimit({
   max: 1,
   skipFailedRequests: true,
   keyGenerator: (req, res) => {
-    return req.headers["x-api-key"] || req.ip;
+    return req.headers["x-api-key"] || ipKeyGenerator(req);
   },
   handler: (req, res, options) => {
     throw new AppError("You can only insert one File", 429);

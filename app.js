@@ -11,6 +11,7 @@ import queryRouter from "./routes/queryRoutes.js";
 import apiKeyRouter from "./routes/apiKeyRoutes.js";
 
 const app = express();
+app.set("trust proxy", true);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,7 +22,29 @@ app.use(express.static(path.join(__dirname, "public")));
 //   app.use(morgan("dev"));
 // }
 
-app.use(cors());
+const allowedOrigins = [
+  "https://your-frontend-domain.onrender.com", // <-- replace with your deployed frontend URL
+  "http://localhost:5173",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      const isLocalNetwork =
+        /^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1]))/.test(origin);
+
+      if (allowedOrigins.includes(origin) || isLocalNetwork) {
+        callback(null, true);
+      } else {
+        console.warn("❌ Blocked by CORS:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: "1mb" }));
 
 app.use("/api/v1", uploadRouter);
