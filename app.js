@@ -23,7 +23,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // }
 
 const allowedOrigins = [
-  "https://your-frontend-domain.onrender.com", // <-- replace with your deployed frontend URL
+  "https://the-rag.netlify.app", // <-- replace with your deployed frontend URL
   "http://localhost:5173",
 ];
 
