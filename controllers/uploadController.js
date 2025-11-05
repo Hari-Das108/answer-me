@@ -77,7 +77,9 @@ export const insertText = async (req, res, next) => {
     }));
 
     const token = req.headers["x-api-key"];
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64").toString("utf-8")
+    );
     const iat = payload.iat;
 
     const namespace = index.namespace(`${req.userId}-namespace-${iat}`);
@@ -86,7 +88,7 @@ export const insertText = async (req, res, next) => {
 
     res.status(200).json({
       status: "success",
-      message: `Successfully inserted ${recordsLength} text chunks.`,
+      message: `Successfully inserted text file with ${chunks.length} chunks.`,
     });
   } catch (error) {
     return next(new AppError("Failed to insert text chunks.", 500));

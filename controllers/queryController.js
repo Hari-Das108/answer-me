@@ -18,7 +18,9 @@ export const getContexts = catchAsync(async (req, res, next) => {
   const { questions } = req.body;
 
   const token = req.headers["x-api-key"];
-  const payload = JSON.parse(atob(token.split(".")[1]));
+  const payload = JSON.parse(
+    Buffer.from(token.split(".")[1], "base64").toString("utf-8")
+  );
   const iat = payload.iat;
 
   const namespace = index.namespace(`${req.userId}-namespace-${iat}`);
