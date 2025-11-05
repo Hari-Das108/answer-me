@@ -5,6 +5,9 @@ export const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 1,
   skipFailedRequests: true,
+  keyGenerator: (req, res) => {
+    return req.headers["x-api-key"] || req.ip;
+  },
   handler: (req, res, options) => {
     throw new AppError("You can only insert one File", 429);
   },
