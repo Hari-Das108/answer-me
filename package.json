@@ -5,7 +5,7 @@
   "type": "module",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon server.js",
+    "start": "node server.js",
     "tunnel": "lt --port 3000 --subdomain mybackend",
     "dev:public": "concurrently -n \"SERVER,TUNNEL\" -c \"blue,green\" \"npm start\" \"npm run tunnel\""
   },
