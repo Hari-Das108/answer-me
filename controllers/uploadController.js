@@ -8,9 +8,7 @@ import AppError from "../utils/appError.js";
 import multer from "multer";
 
 const multerStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "trash");
-  },
+  destination: (req, file, cb) => cb(null, "/tmp"),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
     cb(null, `textfile-${Date.now()}${ext}`);
