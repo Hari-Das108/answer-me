@@ -22,10 +22,7 @@ app.use(express.static(path.join(__dirname, "public")));
 //   app.use(morgan("dev"));
 // }
 
-const allowedOrigins = [
-  "https://the-rag.netlify.app", // <-- replace with your deployed frontend URL
-  "http://localhost:5173",
-];
+const allowedOrigins = ["https://the-rag.netlify.app", "http://localhost:5173"];
 
 app.use(
   cors({
