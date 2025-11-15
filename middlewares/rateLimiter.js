@@ -16,8 +16,11 @@ export const uploadLimiter = rateLimit({
 export const queryLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
+  keyGenerator: (req, res) => {
+    return req.headers["x-api-key"] || ipKeyGenerator(req);
+  },
   handler: (req, res, options) => {
-    throw new AppError("Too many requests", 429);
+    throw new AppError("Too many Queries!!!", 429);
   },
 });
 
