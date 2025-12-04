@@ -1,17 +1,16 @@
-import crypto from "crypto";
-import jwt from "../utils/jwtUtils.js";
+import { createApiKey } from "../utils/generateKey.js";
 import AppError from "../utils/appError.js";
-import { v4 as uuidv4 } from "uuid";
+import ApiKey from "../models/apiKeyModel.js";
+import catchAsync from "../utils/catchAsync.js";
 
-const generateKey = (req, res, next) => {
-  try {
-    const rawKey = crypto.randomBytes(8).toString("hex");
-    const token = jwt.signKey(rawKey, uuidv4());
+export const generateKey = catchAsync(async (req, res, next) => {
+  const newKey = createApiKey();
+  const newApiKey = await ApiKey.create({
+    apiKey: newKey,
+    userId: req.user.id,
+  });
 
-    res.json({ status: "success", apiKey: token });
-  } catch (err) {
-    next(new AppError("Failed to generate API key", 500));
-  }
-};
+  res.json({ status: "success", apiKey: newApiKey.apiKey });
+});
 
 export default { generateKey };

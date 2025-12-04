@@ -11,9 +11,9 @@ import multer from "multer";
 
 const multerStorage = multer.diskStorage({
   // Prduction purpose
-  destination: (req, file, cb) => cb(null, "/tmp"),
+  // destination: (req, file, cb) => cb(null, "/tmp"),
   //Testing purpose
-  // destination: (req, file, cb) => cb(null, "trash"),
+  destination: (req, file, cb) => cb(null, "trash"),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
     cb(null, `document-${Date.now()}${ext}`);
@@ -108,18 +108,12 @@ export const insertText = async (req, res, next) => {
   chunks = chunks.filter((chunk) => chunk !== "");
 
   try {
-    const records = chunks.map((text, index) => ({
+    const records = chunks.map((text) => ({
       _id: uuidv4(),
       text,
     }));
 
-    const token = req.headers["x-api-key"];
-    const payload = JSON.parse(
-      Buffer.from(token.split(".")[1], "base64").toString("utf-8")
-    );
-    const iat = payload.iat;
-
-    const namespace = index.namespace(`${req.userId}-namespace-${iat}`);
+    const namespace = index.namespace(`${req.user.id}-namespace-${req.iat}`);
 
     await namespace.upsertRecords(records);
 

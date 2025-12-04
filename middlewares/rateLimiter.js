@@ -25,15 +25,3 @@ export const queryLimiter = rateLimit({
     throw new AppError("Too many Queries!!!", 429);
   },
 });
-
-export const apiKeyLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 1,
-  skipFailedRequests: true,
-  keyGenerator: (req, res) => {
-    return req.user.id;
-  },
-  handler: (req, res, options) => {
-    throw new AppError("Generate Key after 15 minutes", 429);
-  },
-});

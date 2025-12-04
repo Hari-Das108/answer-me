@@ -1,20 +1,31 @@
-import jwt from "../utils/jwtUtils.js";
 import AppError from "../utils/appError.js";
+import ApiKey from "../models/apiKeyModel.js";
 
-export default (req, res, next) => {
+export default async (req, res, next) => {
   try {
-    const token = req.headers["x-api-key"];
-    if (!token) {
+    const apiKey = req.headers["x-api-key"];
+    if (!apiKey) {
       return next(new AppError("API key is missing", 400));
     }
 
-    const decoded = jwt.verifyKey(token);
-    if (!decoded || !decoded.key) {
-      return next(new AppError("Invalid or expired API key", 401));
+    // 1. Find the API key in DB
+    const apiKeyDoc = await ApiKey.findOne({ apiKey }).populate("userId");
+    if (!apiKeyDoc) {
+      return next(new AppError("Invalid API key", 401));
     }
 
-    req.apiKey = decoded.key;
-    req.userId = decoded.userId;
+    if (!apiKeyDoc.userId) {
+      return next(new AppError("API key not linked to a valid user", 401));
+    }
+
+    // const expiryHours = 24;
+    // const expiryDate = new Date(apiKeyDoc.createdAt.getTime() + expiryHours * 60 * 60 * 1000);
+    // if (Date.now() > expiryDate) {
+    //   return next(new AppError("API key has expired", 401));
+    // }
+
+    req.iat = Math.floor(apiKeyDoc.createdAt.getTime() / 1000);
+
     next();
   } catch {
     return next(new AppError("Invalid or expired API key", 401));
