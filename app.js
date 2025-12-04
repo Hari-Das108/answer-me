@@ -8,6 +8,7 @@ import AppError from "./utils/appError.js";
 import globalErrorHandler from "./controllers/errorController.js";
 import uploadRouter from "./routes/uploadRoutes.js";
 import queryRouter from "./routes/queryRoutes.js";
+import userRouter from "./routes/userRoutes.js";
 import apiKeyRouter from "./routes/apiKeyRoutes.js";
 
 const app = express();
@@ -44,8 +45,15 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 
+// app.use((req, res, next) => {
+//   req.requestTime = new Date().toISOString();
+//   // console.log(req.headers);
+//   next();
+// });
+
 app.use("/api/v1", uploadRouter);
 app.use("/api/v1", queryRouter);
+app.use("/api/v1", userRouter);
 app.use("/api", apiKeyRouter);
 
 app.use((req, res, next) => {
