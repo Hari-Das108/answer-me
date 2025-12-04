@@ -1,5 +1,5 @@
 import express from "express";
-// import morgan from "morgan";
+import morgan from "morgan";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -19,9 +19,9 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.static(path.join(__dirname, "public")));
 
-// if (process.env.NODE_ENV === "development") {
-//   app.use(morgan("dev"));
-// }
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
 
 const allowedOrigins = ["https://the-rag.netlify.app", "http://localhost:5173"];
 

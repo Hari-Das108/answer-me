@@ -10,10 +10,11 @@ import { PDFParse } from "pdf-parse";
 import multer from "multer";
 
 const multerStorage = multer.diskStorage({
-  // Prduction purpose
-  // destination: (req, file, cb) => cb(null, "/tmp"),
-  //Testing purpose
-  destination: (req, file, cb) => cb(null, "trash"),
+  destination: (req, file, cb) => {
+    if (process.env.NODE_ENV === "production") cb(null, "/tmp");
+    if (process.env.NODE_ENV === "development") cb(null, "trash");
+  },
+
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
     cb(null, `document-${Date.now()}${ext}`);

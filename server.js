@@ -16,10 +16,13 @@ mongoose.connect(DB).then(() => {
   console.log("DB connnection successful!!");
 });
 
-// //production database connection
-app.listen(port);
+if (process.env.NODE_ENV === "production") {
+  app.listen(port);
+  console.log(`API is live on https://answer-me-api.onrender.com`);
+}
 
-// development database connection
-// app.listen(port, () => {
-//   console.log(`App running on  http://127.0.0.1:${port}/`);
-// });
+if (process.env.NODE_ENV === "development") {
+  app.listen(port, () => {
+    console.log(`App running on  http://127.0.0.1:${port}/`);
+  });
+}
