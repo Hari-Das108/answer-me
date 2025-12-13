@@ -14,9 +14,18 @@ export default async (req, res, next) => {
       return next(new AppError("Invalid API key", 401));
     }
 
-    if (!apiKeyDoc.userId) {
+    if (!String(apiKeyDoc.userId._id)) {
       return next(new AppError("API key not linked to a valid user", 401));
     }
+
+    if (String(apiKeyDoc.userId._id) !== String(req.user._id)) {
+      return next(new AppError("Invalid API key", 401));
+    }
+
+    // // safest way
+    // if (!apiKeyDoc.userId._id.equals(req.user._id)) {
+    //   return next(new AppError("Invalid API key", 401));
+    // }
 
     // const expiryHours = 24;
     // const expiryDate = new Date(apiKeyDoc.createdAt.getTime() + expiryHours * 60 * 60 * 1000);

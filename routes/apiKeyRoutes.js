@@ -13,4 +13,8 @@ router
     apiKeyController.generateKey
   );
 
+router
+  .route("/v1/apiKey")
+  .get(authController.protect, apiKeyController.getAllApiKeys);
+
 export default router;

@@ -2,6 +2,7 @@ import express from "express";
 import morgan from "morgan";
 import cors from "cors";
 import path from "path";
+import cookieParser from "cookie-parser";
 import { fileURLToPath } from "url";
 
 import AppError from "./utils/appError.js";
@@ -23,7 +24,11 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-const allowedOrigins = ["https://the-rag.netlify.app", "http://localhost:5173"];
+const allowedOrigins = [
+  "https://the-rag.netlify.app",
+  "http://127.0.0.1:5173",
+  "http://localhost:5173",
+];
 
 app.use(
   cors({
@@ -43,13 +48,9 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: "1mb" }));
 
-// app.use((req, res, next) => {
-//   req.requestTime = new Date().toISOString();
-//   // console.log(req.headers);
-//   next();
-// });
+app.use(express.json({ limit: "1mb" }));
+app.use(cookieParser());
 
 app.use("/api/v1", uploadRouter);
 app.use("/api/v1", queryRouter);

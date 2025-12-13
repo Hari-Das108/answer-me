@@ -12,6 +12,7 @@ router
     authController.protect,
     verifyApiKey,
     uploadLimiter,
+    uploadController.verifyDatabase,
     uploadController.uploadTextFile,
     uploadController.validateInsert,
     uploadController.chunkTexts,

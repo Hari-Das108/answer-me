@@ -10,6 +10,59 @@ const signToken = (id) => {
   });
 };
 
+const createAndSendToken = (user, statusCode, res) => {
+  const token = signToken(user._id);
+
+  if (process.env.NODE_ENV === "development") {
+    console.log(token);
+  }
+
+  const cookieOptions = {
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  };
+
+  if (process.env.NODE_ENV === "production") {
+    cookieOptions.secure = true;
+    cookieOptions.sameSite = "none"; // ← Required for cross-origin in production
+  }
+  res.cookie("jwt", token, cookieOptions);
+
+  //Remove password from output
+  user.password = undefined;
+  user.state = "authenticated";
+
+  res.status(statusCode).json({
+    status: "success",
+    token,
+    data: {
+      user,
+    },
+  });
+};
+
+export const logout = (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    cookieOptions.secure = true;
+    cookieOptions.sameSite = "none";
+  }
+
+  res.cookie("jwt", "loggedout", {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
+
+  res.status(200).json({
+    status: "success",
+  });
+};
+
 export const signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
@@ -19,15 +72,7 @@ export const signup = catchAsync(async (req, res, next) => {
     passwordChangedAt: req.body.passwordChangedAt,
   });
 
-  const token = signToken(newUser._id);
-
-  res.status(201).json({
-    status: "success",
-    token,
-    data: {
-      user: newUser,
-    },
-  });
+  createAndSendToken(newUser, 201, res);
 });
 
 export const login = catchAsync(async (req, res, next) => {
@@ -46,12 +91,7 @@ export const login = catchAsync(async (req, res, next) => {
   }
 
   //3) If everything ok, send token to client
-  const token = signToken(user._id);
-
-  res.status(200).json({
-    status: "success",
-    token,
-  });
+  createAndSendToken(user, 200, res);
 });
 
 export const protect = catchAsync(async (req, res, next) => {
@@ -62,16 +102,18 @@ export const protect = catchAsync(async (req, res, next) => {
     req.headers.authorization.startsWith("Bearer")
   ) {
     token = req.headers.authorization.split(" ")[1];
+  } else if (req.cookies.jwt) {
+    token = req.cookies.jwt;
   }
 
-  if (!token) {
+  if (!token || token === "loggedout") {
     return next(
       new AppError("You are not logged in! Please log in to get access.", 401)
     );
   }
 
   //2) Verification token
-  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  let decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
   //3) Check if user still exists
   const currentUser = await User.findById(decoded.id);
@@ -96,4 +138,24 @@ export const protect = catchAsync(async (req, res, next) => {
   next();
 });
 
-export default { signup, login, protect };
+export const getMe = catchAsync(async (req, res, next) => {
+  req.params.id = req.user.id;
+
+  let user = await User.findById(req.params.id);
+
+  if (!user) {
+    return next(new AppError("No user found!!", 404));
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      user: {
+        ...user.toObject(),
+        state: "authenticated",
+      },
+    },
+  });
+});
+
+export default { signup, login, logout, protect, getMe };

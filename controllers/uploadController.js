@@ -8,6 +8,7 @@ import { chunker } from "../utils/chunker.js";
 import mammoth from "mammoth";
 import { PDFParse } from "pdf-parse";
 import multer from "multer";
+import ApiKey from "../models/apiKeyModel.js";
 
 const multerStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -43,6 +44,25 @@ const multerFilter = (req, file, cb) => {
 const upload = multer({
   storage: multerStorage,
   fileFilter: multerFilter,
+});
+
+export const verifyDatabase = catchAsync(async (req, res, next) => {
+  const apiKey = req.headers["x-api-key"];
+
+  const keyDoc = await ApiKey.findOne({ apiKey });
+
+  if (!keyDoc) {
+    throw new AppError("Invalid API key", 401);
+  }
+
+  if (keyDoc.recordCount >= 1) {
+    throw new AppError(
+      "You can only insert one File per Key until it is deleted",
+      429
+    );
+  }
+
+  next();
 });
 
 export const uploadTextFile = upload.single("document");
@@ -105,6 +125,7 @@ export const chunkTexts = (req, res, next) => {
 
 export const insertText = async (req, res, next) => {
   let { chunks } = req.body;
+  const apiKey = req.headers["x-api-key"];
 
   chunks = chunks.filter((chunk) => chunk !== "");
 
@@ -117,6 +138,8 @@ export const insertText = async (req, res, next) => {
     const namespace = index.namespace(`${req.user.id}-namespace-${req.iat}`);
 
     await namespace.upsertRecords(records);
+
+    await ApiKey.updateOne({ apiKey }, { $inc: { recordCount: 1 } });
 
     res.status(200).json({
       status: "success",
@@ -134,6 +157,7 @@ export const insertText = async (req, res, next) => {
 };
 
 export default {
+  verifyDatabase,
   uploadTextFile,
   validateInsert,
   chunkTexts,

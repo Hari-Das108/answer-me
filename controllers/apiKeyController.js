@@ -1,5 +1,4 @@
 import { createApiKey } from "../utils/generateKey.js";
-import AppError from "../utils/appError.js";
 import ApiKey from "../models/apiKeyModel.js";
 import catchAsync from "../utils/catchAsync.js";
 
@@ -13,4 +12,16 @@ export const generateKey = catchAsync(async (req, res, next) => {
   res.json({ status: "success", apiKey: newApiKey.apiKey });
 });
 
-export default { generateKey };
+export const getAllApiKeys = catchAsync(async (req, res, next) => {
+  const apiKeys = await ApiKey.find({});
+
+  res.status(200).json({
+    status: "success",
+    results: apiKeys.length,
+    data: {
+      apiKeys,
+    },
+  });
+});
+
+export default { generateKey, getAllApiKeys };

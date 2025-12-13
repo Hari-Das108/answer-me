@@ -10,6 +10,10 @@ const apiKeySchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  recordCount: {
+    type: Number,
+    default: 0,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
