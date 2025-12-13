@@ -9,7 +9,6 @@ const router = express.Router();
 router
   .route("/upload")
   .post(
-    authController.protect,
     verifyApiKey,
     uploadLimiter,
     uploadController.verifyDatabase,

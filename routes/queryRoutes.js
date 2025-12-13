@@ -11,7 +11,6 @@ const router = express.Router();
 router
   .route("/query")
   .post(
-    authController.protect,
     verifyApiKey,
     queryLimiter,
     queryController.validateQueries,

@@ -135,7 +135,7 @@ export const insertText = async (req, res, next) => {
       text,
     }));
 
-    const namespace = index.namespace(`${req.user.id}-namespace-${req.iat}`);
+    const namespace = index.namespace(`${req.user}-namespace-${req.iat}`);
 
     await namespace.upsertRecords(records);
 

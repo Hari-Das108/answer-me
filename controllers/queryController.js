@@ -17,7 +17,7 @@ export const validateQueries = (req, res, next) => {
 export const getContexts = catchAsync(async (req, res, next) => {
   const { questions } = req.body;
 
-  const namespace = index.namespace(`${req.user.id}-namespace-${req.iat}`);
+  const namespace = index.namespace(`${req.user}-namespace-${req.iat}`);
 
   const responses = await Promise.all(
     questions.map((question) =>
