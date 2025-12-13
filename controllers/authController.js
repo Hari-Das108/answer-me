@@ -46,17 +46,19 @@ const createAndSendToken = (user, statusCode, res) => {
 };
 
 export const logout = (req, res) => {
+  const cookieOptions = {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  };
+
   if (process.env.NODE_ENV === "production") {
     cookieOptions.secure = true;
     cookieOptions.sameSite = "none";
   }
 
-  res.cookie("jwt", "loggedout", {
-    expires: new Date(Date.now() + 10 * 1000),
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-  });
+  res.cookie("jwt", "loggedout", cookieOptions);
 
   res.status(200).json({
     status: "success",
