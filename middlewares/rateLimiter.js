@@ -16,6 +16,7 @@ export const uploadLimiter = rateLimit({
 export const queryLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000,
   max: 10,
+  skipFailedRequests: true,
   keyGenerator: (req, res) => {
     return req.user.id;
   },
