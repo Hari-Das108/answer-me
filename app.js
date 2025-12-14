@@ -51,7 +51,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // 4. Use the SAME config for Preflight (OPTIONS) requests
-app.options("*", cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
