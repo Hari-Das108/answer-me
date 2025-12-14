@@ -13,7 +13,7 @@ export const generateKey = catchAsync(async (req, res, next) => {
 });
 
 export const getAllApiKeys = catchAsync(async (req, res, next) => {
-  const apiKeys = await ApiKey.find({});
+  const apiKeys = await ApiKey.find({ userId: req.user.id });
 
   res.status(200).json({
     status: "success",
