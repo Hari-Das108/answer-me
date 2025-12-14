@@ -39,6 +39,12 @@ app.use(
   })
 );
 
+// 3. Apply it to the middleware
+app.use(cors(corsOptions));
+
+// 4. ⭐ Apply the SAME config to the preflight checks (This fixes your error)
+app.options("*", cors(corsOptions));
+
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
