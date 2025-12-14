@@ -25,18 +25,11 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // 1. Define the whitelist
-const whitelist = ["http://localhost:5173", "https://the-rag.netlify.app"];
+// const whitelist = ["http://localhost:5173", "https://the-rag.netlify.app"];
 
 // 2. Define the config OBJECT once (so we can use it twice)
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Check if origin is in whitelist OR if it has no origin (like Postman/cURL)
-    if (!origin || whitelist.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: "*",
   credentials: true, // Allow cookies
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: [
@@ -51,7 +44,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // 4. Use the SAME config for Preflight (OPTIONS) requests
-app.options(/.*/, cors(corsOptions));
+// app.options(/.*/, cors(corsOptions));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
