@@ -25,7 +25,18 @@ if (process.env.NODE_ENV === "development") {
 }
 
 const corsOptions = {
-  origin: ["https://the-rag.netlify.app", "http://localhost:5173"],
+  origin: function (origin, callback) {
+    const whitelist = ["https://the-rag.netlify.app", "http://localhost:5173"];
+
+    const isLocalNetwork =
+      /^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1]))/.test(origin);
+
+    if (!origin || whitelist.indexOf(origin) !== -1 || isLocalNetwork) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: [
@@ -37,6 +48,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
