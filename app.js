@@ -24,13 +24,24 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-// 1. Define the whitelist
-// const whitelist = ["http://localhost:5173", "https://the-rag.netlify.app"];
+// ======================================================
+// 1. CONFIGURATION
+// ======================================================
 
-// 2. Define the config OBJECT once (so we can use it twice)
-const corsOptions = {
-  origin: "*",
-  credentials: true, // Allow cookies
+const strictCors = cors({
+  origin: function (origin, callback) {
+    const whitelist = [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://the-rag.netlify.app",
+    ];
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
@@ -38,21 +49,45 @@ const corsOptions = {
     "X-Requested-With",
     "Accept",
   ],
-};
+});
 
-// 3. Use the config for standard requests
-app.use(cors(corsOptions));
-
-// 4. Use the SAME config for Preflight (OPTIONS) requests
-// app.options(/.*/, cors(corsOptions));
+const publicCors = cors({
+  origin: "*",
+  credentials: false,
+});
 
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
+// ======================================================
+// 2. INTELLIGENT ROUTING (The Magic Fix)
+// ======================================================
+
+// A. STRICT ROUTES (API Key)
+// This is easy because it has a unique path prefix "/api" (no v1)
+app.use("/api", strictCors, apiKeyRouter);
+
+// B. MIXED ROUTES (/api/v1)
+// We create a "Gateway" middleware to decide which CORS to use based on the sub-path
+const corsGateway = (req, res, next) => {
+  // List of paths inside /api/v1 that need STRICT rules (Cookies)
+  // Matches: /api/v1/login, /api/v1/signup, /api/v1/me, etc.
+  if (req.url.match(/^\/(login|signup|logout|me)/)) {
+    strictCors(req, res, next);
+  } else {
+    // Everything else (uploads, queries) gets PUBLIC rules
+    publicCors(req, res, next);
+  }
+};
+
+// Apply the Gateway + The Routers
+// This keeps your URLs exactly as /api/v1/login, /api/v1/upload, etc.
+app.use("/api/v1", corsGateway);
+app.use("/api/v1", userRouter);
 app.use("/api/v1", uploadRouter);
 app.use("/api/v1", queryRouter);
-app.use("/api/v1", userRouter);
-app.use("/api", apiKeyRouter);
+
+// ======================================================
 
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
