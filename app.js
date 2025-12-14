@@ -24,30 +24,56 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
+app.use(cors());
+
+// 1. Define allowed domains
 const allowedOrigins = [
+  "http://localhost:5173",
   "https://the-rag.netlify.app",
   "http://127.0.0.1:5173",
-  "http://localhost:5173",
 ];
 
+// 2. Configure CORS
 app.use(
   cors({
-    origin: function (origin, callback) {
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like Postman or mobile apps)
       if (!origin) return callback(null, true);
 
-      const isLocalNetwork =
-        /^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1]))/.test(origin);
-
-      if (allowedOrigins.includes(origin) || isLocalNetwork) {
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        console.warn("❌ Blocked by CORS:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true,
+    credentials: true, // <--- MANDATORY for cookies to work
   })
 );
+
+// const allowedOrigins = [
+//   "https://the-rag.netlify.app",
+//   "http://127.0.0.1:5173",
+//   "http://localhost:5173",
+// ];
+
+// app.use(
+//   cors({
+//     origin: function (origin, callback) {
+//       if (!origin) return callback(null, true);
+
+//       const isLocalNetwork =
+//         /^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1]))/.test(origin);
+
+//       if (allowedOrigins.includes(origin) || isLocalNetwork) {
+//         callback(null, true);
+//       } else {
+//         console.warn("❌ Blocked by CORS:", origin);
+//         callback(new Error("Not allowed by CORS"));
+//       }
+//     },
+//     credentials: true,
+//   })
+// );
 
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
