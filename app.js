@@ -24,8 +24,6 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-app.use(cors());
-
 // 1. Define allowed domains
 const allowedOrigins = [
   "http://localhost:5173",
