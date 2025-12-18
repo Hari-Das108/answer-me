@@ -24,4 +24,17 @@ export const getAllApiKeys = catchAsync(async (req, res, next) => {
   });
 });
 
-export default { generateKey, getAllApiKeys };
+export const deleteApiKey = catchAsync(async (req, res, next) => {
+  const apiKey = await ApiKey.findByIdAndDelete(req.params.id);
+
+  if (!apiKey) {
+    return next(new AppError("No Api-Key found with that ID", 404));
+  }
+
+  res.status(204).json({
+    status: "success",
+    data: null,
+  });
+});
+
+export default { generateKey, getAllApiKeys, deleteApiKey };

@@ -17,4 +17,8 @@ router
   .route("/v1/apiKey")
   .get(authController.protect, apiKeyController.getAllApiKeys);
 
+router
+  .route("/v1/apiKey/:id")
+  .delete(authController.protect, apiKeyController.deleteApiKey);
+
 export default router;
