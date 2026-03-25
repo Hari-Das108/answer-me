@@ -1,7 +1,11 @@
 import { pipeline } from "@xenova/transformers";
 import { Pinecone } from "@pinecone-database/pinecone";
 
-// 1. Initialize outside the controller for performance
+// --- Configuration ---
+const OPENROUTER_API_KEY =
+  "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"; // Replace with your key
+
+// 1. Initialize Model outside for performance
 let extractor;
 const initModel = async () => {
   if (!extractor) {
@@ -22,37 +26,66 @@ const index = pc.index(
 
 const namespace = index.namespace("en-hi");
 
+// --- Helper: LLM Translation via OpenRouter ---
+async function getLLMTranslation(text, targetLang) {
+  try {
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.0-flash-001", // Fast and efficient for translation
+          messages: [
+            {
+              role: "system",
+              content: `You are a professional translator. Translate the text to language code: ${targetLang}. Return ONLY the translation.`,
+            },
+            { role: "user", content: text },
+          ],
+        }),
+      },
+    );
+    const data = await response.json();
+    return (
+      data.choices?.[0]?.message?.content?.trim() || "Translation unavailable"
+    );
+  } catch (error) {
+    console.error("LLM Error:", error);
+    return "Translation Error";
+  }
+}
+
 // --- Helper: Create Embedding ---
 async function createEmbedding(text) {
-  const embedding = await extractor(text, {
-    pooling: "mean",
-    normalize: true,
-  });
+  const embedding = await extractor(text, { pooling: "mean", normalize: true });
   return Array.from(embedding.data);
 }
 
-// --- Controller Function ---
+// --- Main Controller ---
 export const categorizeStrings = async (req, res) => {
   try {
-    const { texts } = req.body;
+    const { texts, lang = "hi" } = req.body;
 
-    // Validation
     if (!texts || !Array.isArray(texts)) {
       return res
         .status(400)
-        .json({ error: "Invalid input. 'texts' must be an array of strings." });
+        .json({ error: "Invalid input. 'texts' must be an array." });
     }
 
     const results = {
+      exact: [],
       fuzzy: [],
       new: [],
     };
 
-    // Process in parallel
+    // Use Promise.all to process all strings in parallel
     await Promise.all(
       texts.map(async (text) => {
         const queryVector = await createEmbedding(text);
-
         const response = await namespace.query({
           vector: queryVector,
           topK: 1,
@@ -62,24 +95,42 @@ export const categorizeStrings = async (req, res) => {
         const bestMatch = response.matches?.[0];
         const score = bestMatch ? bestMatch.score : 0;
 
-        // Threshold Logic
-        if (score >= 0.8 && score < 0.99) {
-          results.fuzzy.push(text);
-        } else if (score < 0.8) {
-          results.new.push(text);
+        // Categorization Logic
+        if (score >= 0.99) {
+          // EXACT MATCH: Return stored translation
+          results.exact.push({
+            text: text,
+            score: Number(score.toFixed(4)),
+            translation:
+              bestMatch.metadata?.translation || "No translation found",
+          });
+        } else if (score >= 0.75 && score < 0.99) {
+          // FUZZY MATCH: Get LLM suggestion alongside existing DB match
+          const suggestion = await getLLMTranslation(text, lang);
+          results.fuzzy.push({
+            text: text,
+            score: Number(score.toFixed(4)),
+            matchText: bestMatch.metadata?.text || null,
+            existingMatchTranslation: bestMatch.metadata?.translation || null,
+            suggested_translation: suggestion,
+          });
+        } else {
+          // NEW: Get fresh LLM translation
+          const suggestion = await getLLMTranslation(text, lang);
+          results.new.push({
+            text: text,
+            score: Number(score.toFixed(4)),
+            suggested_translation: suggestion,
+          });
         }
-        // Exact matches (>0.99) are excluded based on your requirement
       }),
     );
 
-    // Return the categorized lists
     return res.status(200).json(results);
   } catch (error) {
-    console.error("Vector Search Error:", error);
+    console.error("Categorization Error:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-export default {
-  categorizeStrings,
-};
+export default { categorizeStrings };
