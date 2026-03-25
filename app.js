@@ -11,6 +11,7 @@ import uploadRouter from "./routes/uploadRoutes.js";
 import queryRouter from "./routes/queryRoutes.js";
 import userRouter from "./routes/userRoutes.js";
 import apiKeyRouter from "./routes/apiKeyRoutes.js";
+import testRouter from "./routes/testRoutes.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -56,6 +57,7 @@ app.use(cookieParser());
 app.use("/api/v1", uploadRouter);
 app.use("/api/v1", queryRouter);
 app.use("/api/v1", userRouter);
+app.use("/api/v1", testRouter);
 app.use("/api", apiKeyRouter);
 
 app.use((req, res, next) => {
