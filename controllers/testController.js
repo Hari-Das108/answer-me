@@ -38,7 +38,7 @@ async function getLLMTranslation(text, targetLang) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.0-flash-001", // Fast and efficient for translation
+          model: "mistralai/mistral-7b-instruct:free", // Fast and efficient for translation
           messages: [
             {
               role: "system",
