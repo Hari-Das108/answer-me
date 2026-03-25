@@ -1,11 +1,14 @@
 import { pipeline } from "@xenova/transformers";
 import { Pinecone } from "@pinecone-database/pinecone";
+import { GoogleGenAI } from "@google/genai";
 
 // --- Configuration ---
-const OPENROUTER_API_KEY =
-  "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"; // Replace with your key
+// Initialize the latest Google AI SDK
+const ai = new GoogleGenAI({
+  apiKey: process.env.GOOGLE_API_KEY,
+});
 
-// 1. Initialize Model outside for performance
+// 1. Initialize Transformers Model for local embeddings
 let extractor;
 const initModel = async () => {
   if (!extractor) {
@@ -26,36 +29,19 @@ const index = pc.index(
 
 const namespace = index.namespace("en-hi");
 
-// --- Helper: LLM Translation via OpenRouter ---
-async function getLLMTranslation(text, targetLang) {
+// --- Helper: Gemini Translation ---
+async function getGeminiTranslation(text, targetLang) {
   try {
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "mistralai/mistral-7b-instruct:free", // Fast and efficient for translation
-          messages: [
-            {
-              role: "system",
-              content: `You are a professional translator. Translate the text to language code: ${targetLang}. Return ONLY the translation.`,
-            },
-            { role: "user", content: text },
-          ],
-        }),
-      },
-    );
-    const data = await response.json();
-    return (
-      data.choices?.[0]?.message?.content?.trim() || "Translation unavailable"
-    );
+    // Using the specific preview model you requested
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-flash-lite-preview",
+      contents: `Translate to language code: ${targetLang}. Return ONLY the translation.\n\nText: ${text}`,
+    });
+
+    return response.text.trim();
   } catch (error) {
-    console.error("LLM Error:", error);
-    return "Translation Error";
+    console.error("Gemini SDK Error:", error);
+    return "Translation error";
   }
 }
 
@@ -82,10 +68,12 @@ export const categorizeStrings = async (req, res) => {
       new: [],
     };
 
-    // Use Promise.all to process all strings in parallel
     await Promise.all(
       texts.map(async (text) => {
+        // 1. Get Vector
         const queryVector = await createEmbedding(text);
+
+        // 2. Query Pinecone
         const response = await namespace.query({
           vector: queryVector,
           topK: 1,
@@ -94,32 +82,32 @@ export const categorizeStrings = async (req, res) => {
 
         const bestMatch = response.matches?.[0];
         const score = bestMatch ? bestMatch.score : 0;
+        const scoreFormatted = Number(score.toFixed(4));
 
-        // Categorization Logic
+        // 3. Logic & AI Translation
         if (score >= 0.99) {
-          // EXACT MATCH: Return stored translation
+          // EXACT: No AI call needed, use DB
           results.exact.push({
             text: text,
-            score: Number(score.toFixed(4)),
-            translation:
-              bestMatch.metadata?.translation || "No translation found",
+            score: scoreFormatted,
+            translation: bestMatch.metadata?.translation || "N/A",
           });
         } else if (score >= 0.75 && score < 0.99) {
-          // FUZZY MATCH: Get LLM suggestion alongside existing DB match
-          const suggestion = await getLLMTranslation(text, lang);
+          // FUZZY: Get AI suggestion + DB reference
+          const suggestion = await getGeminiTranslation(text, lang);
           results.fuzzy.push({
             text: text,
-            score: Number(score.toFixed(4)),
+            score: scoreFormatted,
             matchText: bestMatch.metadata?.text || null,
             existingMatchTranslation: bestMatch.metadata?.translation || null,
             suggested_translation: suggestion,
           });
         } else {
-          // NEW: Get fresh LLM translation
-          const suggestion = await getLLMTranslation(text, lang);
+          // NEW: Pure AI translation
+          const suggestion = await getGeminiTranslation(text, lang);
           results.new.push({
             text: text,
-            score: Number(score.toFixed(4)),
+            score: scoreFormatted,
             suggested_translation: suggestion,
           });
         }
@@ -128,7 +116,7 @@ export const categorizeStrings = async (req, res) => {
 
     return res.status(200).json(results);
   } catch (error) {
-    console.error("Categorization Error:", error);
+    console.error("Internal Server Error:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
